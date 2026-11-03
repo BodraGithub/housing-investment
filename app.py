@@ -17,9 +17,18 @@ import logic as L
 st.set_page_config(page_title="Real Estate Investment Advisor", page_icon="🏠", layout="wide")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CANDIDATES = [os.path.join(HERE, "india_housing_prices.csv"),
-              os.path.join(HERE, "data", "india_housing_prices.csv"),
-              "india_housing_prices.csv", "data/india_housing_prices.csv"]
+
+
+def find_csv():
+    """Find the dataset automatically: any india_housing_prices*.csv (e.g. a browser-renamed
+    'india_housing_prices_1.csv') in the app folder, its data/ subfolder, or the working directory."""
+    import glob
+    for folder in (HERE, os.path.join(HERE, "data"), os.getcwd(), os.path.join(os.getcwd(), "data")):
+        for pattern in ("india_housing_prices.csv", "india_housing_prices*.csv", "*housing*.csv"):
+            hits = sorted(glob.glob(os.path.join(folder, pattern)))
+            if hits:
+                return hits[0]
+    return None
 
 
 # ------------------------------------------------------------------ data
@@ -35,16 +44,13 @@ def to_csv_bytes(df: pd.DataFrame) -> bytes:
 
 
 def load():
-    path = next((p for p in CANDIDATES if os.path.exists(p)), None)
+    path = find_csv()
     if path:
         return get_data(path)
-    st.sidebar.warning("india_housing_prices.csv not found next to app.py.")
-    up = st.sidebar.file_uploader("Upload india_housing_prices.csv", type="csv")
-    if up is None:
-        st.title("🏠 Real Estate Investment Advisor")
-        st.info("Place **india_housing_prices.csv** in the app folder or upload it from the sidebar to begin.")
-        st.stop()
-    return get_data(up.getvalue())
+    st.title("🏠 Real Estate Investment Advisor")
+    st.error("Dataset not found. Save **india_housing_prices.csv** in the same folder as app.py "
+             f"(`{HERE}`) and refresh the page.")
+    st.stop()
 
 
 df, ref, quality = load()
